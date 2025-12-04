@@ -317,27 +317,47 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {transactions.slice(0, 5).map((t) => (
-                    <div key={t.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${t.type === 'EARN' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
-                          {t.type === 'EARN' ? <Plus className="w-4 h-4" /> : <Gift className="w-4 h-4" />}
+                  {transactions.slice(0, 5).map((t) => {
+                    const customer = customers.find(c => c.id === t.customerId);
+                    const message = `Hola ${t.customerName}, el ${format(new Date(t.createdAt), "dd/MM/yyyy 'a las' HH:mm")} se ${t.type === 'EARN' ? 'sumaron' : 'canjearon'} ${t.points} puntos. ${t.amount ? `Monto: $${t.amount}` : ''}`;
+                    const whatsappUrl = customer ? `https://wa.me/${customer.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}` : '#';
+
+                    return (
+                      <div key={t.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg group">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${t.type === 'EARN' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
+                            {t.type === 'EARN' ? <Plus className="w-4 h-4" /> : <Gift className="w-4 h-4" />}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm text-gray-900">{t.customerName}</p>
+                            <p className="text-xs text-gray-500">
+                              {format(new Date(t.createdAt), "MMM d, h:mm a")}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-sm text-gray-900">{t.customerName}</p>
-                          <p className="text-xs text-gray-500">
-                            {format(new Date(t.createdAt), "MMM d, h:mm a")}
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <p className={`font-bold ${t.type === 'EARN' ? 'text-green-600' : 'text-orange-600'}`}>
+                              {t.type === 'EARN' ? '+' : '-'}{t.points}
+                            </p>
+                            {t.amount && <p className="text-xs text-gray-400">${t.amount}</p>}
+                          </div>
+                          {customer && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                              asChild
+                            >
+                              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" title="Send WhatsApp Receipt">
+                                <MessageSquare className="w-4 h-4" />
+                              </a>
+                            </Button>
+                          )}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className={`font-bold ${t.type === 'EARN' ? 'text-green-600' : 'text-orange-600'}`}>
-                          {t.type === 'EARN' ? '+' : '-'}{t.points}
-                        </p>
-                        {t.amount && <p className="text-xs text-gray-400">${t.amount}</p>}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {transactions.length === 0 && (
                     <p className="text-center text-gray-500 text-sm py-4">No transactions yet.</p>
                   )}
