@@ -277,7 +277,7 @@ export default function Dashboard() {
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Rate: 1 Point per $1. Customer will receive a WhatsApp notification.
+                        Rate: 5% (5 points per $100). Customer will receive a WhatsApp notification.
                       </p>
                     </form>
                   </TabsContent>

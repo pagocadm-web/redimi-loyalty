@@ -61,7 +61,7 @@ let transactions: Transaction[] = [
 
 let events: EventLog[] = [];
 
-const POINTS_PER_UNIT = 1;
+const POINTS_PER_UNIT = 0.05;
 
 // Helper to simulate WhatsApp
 const sendWhatsApp = (customer: Customer, message: string) => {
