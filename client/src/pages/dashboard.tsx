@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, Customer } from "@/lib/mock-server";
+import { api, Customer, Settings } from "@/lib/mock-server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,17 +8,33 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Gift, CreditCard, UserPlus, Search, RefreshCw, QrCode, MessageSquare } from "lucide-react";
+import { Plus, Gift, UserPlus, Search, RefreshCw, MessageSquare, Settings as SettingsIcon, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
+import { useLocation } from "wouter";
+
+const COUNTRY_CODES = [
+  { code: "+1", country: "US/CA" },
+  { code: "+52", country: "Mexico" },
+  { code: "+54", country: "Argentina" },
+  { code: "+55", country: "Brazil" },
+  { code: "+56", country: "Chile" },
+  { code: "+57", country: "Colombia" },
+  { code: "+34", country: "Spain" },
+];
 
 export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
-  const [qrCustomer, setQrCustomer] = useState<Customer | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // Form states for phone input
+  const [selectedCountryCode, setSelectedCountryCode] = useState("+1");
 
   // Queries
   const { data: customers = [] } = useQuery({
@@ -40,6 +56,11 @@ export default function Dashboard() {
   const { data: stats } = useQuery({
     queryKey: ["stats"],
     queryFn: api.getStats,
+  });
+
+  const { data: settings } = useQuery({
+    queryKey: ["settings"],
+    queryFn: api.getSettings,
   });
 
   // Mutations
@@ -80,13 +101,25 @@ export default function Dashboard() {
     },
   });
 
+  const updateSettingsMutation = useMutation({
+    mutationFn: api.updateSettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      toast({ title: "Settings Updated", description: "Your changes have been saved." });
+      setIsSettingsOpen(false);
+    },
+  });
+
   // Handlers
   const handleAddCustomer = (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
+    const phoneNumber = formData.get("phoneNumber") as string;
+    const fullPhone = `${selectedCountryCode}${phoneNumber}`; // Combine code and number
+
     createCustomerMutation.mutate({
       name: formData.get("name") as string,
-      whatsapp: formData.get("whatsapp") as string,
+      whatsapp: fullPhone,
       birthday: formData.get("birthday") as string,
     });
   };
@@ -117,6 +150,25 @@ export default function Dashboard() {
     });
   };
 
+  const handleUpdateSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    updateSettingsMutation.mutate({
+      rate: Number(formData.get("rate")),
+      franchise: formData.get("franchise") as string,
+      password: formData.get("password") as string,
+    });
+  };
+
+  const handleLogout = () => {
+    setLocation("/login");
+  };
+
+  const filteredCustomers = customers.filter(c => 
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    c.whatsapp.includes(searchQuery)
+  );
+
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
 
   return (
@@ -127,10 +179,57 @@ export default function Dashboard() {
           <div className="w-10 h-10 rounded-xl bg-gradient-pointy flex items-center justify-center shadow-sm">
             <span className="font-bold text-white text-xl">P</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Pointy</h1>
+          <h1 className="text-2xl font-bold text-gray-900">PUNTIFY.CO</h1>
         </div>
         <div className="flex items-center gap-4">
-           <div className="text-sm text-gray-500 hidden md:block">Vendor Dashboard</div>
+           <div className="text-sm text-gray-500 hidden md:block mr-2">
+             {settings?.franchise || "Main Store"}
+           </div>
+           
+           <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+             <DialogTrigger asChild>
+               <Button variant="outline" size="icon" className="rounded-full">
+                 <SettingsIcon className="w-4 h-4" />
+               </Button>
+             </DialogTrigger>
+             <DialogContent>
+               <DialogHeader>
+                 <DialogTitle>Vendor Settings</DialogTitle>
+                 <DialogDescription>Manage your store configuration.</DialogDescription>
+               </DialogHeader>
+               <form onSubmit={handleUpdateSettings} className="space-y-4 mt-4">
+                 <div className="space-y-2">
+                   <Label htmlFor="rate">Points Rate (Points per $1)</Label>
+                   <Input id="rate" name="rate" type="number" step="0.01" defaultValue={settings?.rate} required />
+                   <p className="text-xs text-muted-foreground">Current: {((settings?.rate || 0) * 100).toFixed(0)}% return</p>
+                 </div>
+                 <div className="space-y-2">
+                   <Label htmlFor="franchise">Franchise Name</Label>
+                   <Select name="franchise" defaultValue={settings?.franchise}>
+                     <SelectTrigger>
+                       <SelectValue placeholder="Select franchise" />
+                     </SelectTrigger>
+                     <SelectContent>
+                       <SelectItem value="Main Store">Main Store</SelectItem>
+                       <SelectItem value="Downtown Branch">Downtown Branch</SelectItem>
+                       <SelectItem value="Airport Kiosk">Airport Kiosk</SelectItem>
+                     </SelectContent>
+                   </Select>
+                 </div>
+                 <div className="space-y-2">
+                   <Label htmlFor="password">Change Password</Label>
+                   <Input id="password" name="password" type="password" placeholder="New password" />
+                 </div>
+                 <DialogFooter>
+                   <Button type="submit" disabled={updateSettingsMutation.isPending}>Save Changes</Button>
+                 </DialogFooter>
+               </form>
+             </DialogContent>
+           </Dialog>
+
+           <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-50 rounded-full" onClick={handleLogout}>
+             <LogOut className="w-4 h-4" />
+           </Button>
         </div>
       </header>
 
@@ -153,7 +252,21 @@ export default function Dashboard() {
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="whatsapp" className="text-xs text-gray-500 uppercase font-medium">WhatsApp</Label>
-                  <Input id="whatsapp" name="whatsapp" placeholder="+1234567890" required className="bg-gray-50 border-gray-200" />
+                  <div className="flex gap-2">
+                    <Select value={selectedCountryCode} onValueChange={setSelectedCountryCode}>
+                      <SelectTrigger className="w-[110px] bg-gray-50 border-gray-200">
+                        <SelectValue placeholder="Code" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COUNTRY_CODES.map((c) => (
+                          <SelectItem key={c.code} value={c.code}>
+                            {c.code}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input id="phoneNumber" name="phoneNumber" placeholder="1234567890" required className="flex-1 bg-gray-50 border-gray-200" />
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="birthday" className="text-xs text-gray-500 uppercase font-medium">Birthday (Optional)</Label>
@@ -172,13 +285,18 @@ export default function Dashboard() {
               <CardTitle className="text-lg">Customers</CardTitle>
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input placeholder="Search customers..." className="pl-9 bg-gray-50 border-none" />
+                <Input 
+                  placeholder="Search by name or phone..." 
+                  className="pl-9 bg-gray-50 border-none" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
             </CardHeader>
             <CardContent className="p-0 flex-1 overflow-hidden">
               <ScrollArea className="h-full">
                 <div className="divide-y divide-gray-100">
-                  {customers.map((customer) => (
+                  {filteredCustomers.map((customer) => (
                     <motion.div
                       key={customer.id}
                       initial={{ opacity: 0 }}
@@ -194,22 +312,11 @@ export default function Dashboard() {
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                           {customer.balance} pts
                         </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setQrCustomer(customer);
-                          }}
-                        >
-                          <QrCode className="w-4 h-4 text-gray-500" />
-                        </Button>
                       </div>
                     </motion.div>
                   ))}
-                  {customers.length === 0 && (
-                    <div className="p-8 text-center text-gray-500 text-sm">No customers yet.</div>
+                  {filteredCustomers.length === 0 && (
+                    <div className="p-8 text-center text-gray-500 text-sm">No customers found.</div>
                   )}
                 </div>
               </ScrollArea>
@@ -277,7 +384,7 @@ export default function Dashboard() {
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Rate: 5% (5 points per $100). Customer will receive a WhatsApp notification.
+                        Rate: {((settings?.rate || 0) * 100).toFixed(0)}% ({((settings?.rate || 0) * 100).toFixed(0)} points per $100). Customer will receive a WhatsApp notification.
                       </p>
                     </form>
                   </TabsContent>
@@ -392,32 +499,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-
-      {/* QR Code Dialog */}
-      <Dialog open={!!qrCustomer} onOpenChange={(open) => !open && setQrCustomer(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Customer QR Code</DialogTitle>
-            <DialogDescription>Scan this code to identify the customer.</DialogDescription>
-          </DialogHeader>
-          {qrCustomer && (
-            <div className="flex flex-col items-center justify-center p-4 space-y-4">
-              <div className="p-4 bg-white rounded-xl shadow-lg">
-                <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrCustomer.id}`} 
-                  alt={`QR code for ${qrCustomer.name}`} 
-                  className="w-48 h-48"
-                />
-              </div>
-              <div className="text-center">
-                <p className="font-bold text-lg">{qrCustomer.name}</p>
-                <p className="text-sm text-gray-500">{qrCustomer.whatsapp}</p>
-                <p className="text-xs text-gray-400 mt-1">ID: {qrCustomer.id}</p>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

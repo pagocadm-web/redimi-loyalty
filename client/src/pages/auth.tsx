@@ -13,6 +13,7 @@ export default function AuthPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    // Mock login delay
     setTimeout(() => {
       setIsLoading(false);
       setLocation("/");
@@ -29,7 +30,7 @@ export default function AuthPage() {
       >
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold tracking-tight mb-2">
-            <span className="bg-gradient-pointy text-transparent bg-clip-text">Pointy</span>
+            <span className="bg-gradient-pointy text-transparent bg-clip-text">PUNTIFY.CO</span>
           </h1>
           <p className="text-muted-foreground">Vendor Loyalty Dashboard</p>
         </div>
@@ -43,7 +44,7 @@ export default function AuthPage() {
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="vendor@pointy.com" required defaultValue="demo@pointy.com" />
+                <Input id="email" type="email" placeholder="vendor@puntify.co" required defaultValue="admin@puntify.co" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>

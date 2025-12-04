@@ -27,12 +27,18 @@ export interface EventLog {
   createdAt: string;
 }
 
+export interface Settings {
+  rate: number;
+  password?: string;
+  franchise: string;
+}
+
 // Mock Data Storage (In-Memory)
 let customers: Customer[] = [
   {
     id: "1",
     name: "Maria Garcia",
-    whatsapp: "+15550101",
+    whatsapp: "+5491112345678",
     birthday: "1990-05-15",
     createdAt: new Date().toISOString(),
     balance: 150,
@@ -61,7 +67,10 @@ let transactions: Transaction[] = [
 
 let events: EventLog[] = [];
 
-const POINTS_PER_UNIT = 0.05;
+let settings: Settings = {
+  rate: 0.05,
+  franchise: "Main Store",
+};
 
 // Helper to simulate WhatsApp
 const sendWhatsApp = (customer: Customer, message: string) => {
@@ -99,7 +108,7 @@ export const api = {
     const customer = customers.find((c) => c.id === customerId);
     if (!customer) throw new Error("Customer not found");
 
-    const points = Math.floor(amount * POINTS_PER_UNIT);
+    const points = Math.floor(amount * settings.rate);
     customer.balance += points;
 
     const transaction: Transaction = {
@@ -113,7 +122,7 @@ export const api = {
     };
     transactions.unshift(transaction);
 
-    sendWhatsApp(customer, `Hola ${customer.name}, sumaste ${points} puntos en Pointy Store. Total actual: ${customer.balance} puntos.`);
+    sendWhatsApp(customer, `Hola ${customer.name}, sumaste ${points} puntos en ${settings.franchise}. Total actual: ${customer.balance} puntos.`);
 
     return transaction;
   },
@@ -139,7 +148,7 @@ export const api = {
     };
     transactions.unshift(transaction);
 
-    sendWhatsApp(customer, `Hola ${customer.name}, canjeaste ${points} puntos en Pointy Store. Total actual: ${customer.balance} puntos.`);
+    sendWhatsApp(customer, `Hola ${customer.name}, canjeaste ${points} puntos en ${settings.franchise}. Total actual: ${customer.balance} puntos.`);
 
     return transaction;
   },
@@ -168,5 +177,16 @@ export const api = {
       totalPointsIssued,
       totalPointsRedeemed,
     };
+  },
+
+  getSettings: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return { ...settings };
+  },
+
+  updateSettings: async (newSettings: Partial<Settings>) => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    settings = { ...settings, ...newSettings };
+    return { ...settings };
   }
 };
