@@ -31,6 +31,7 @@ export interface Settings {
   rate: number;
   password?: string;
   franchise: string;
+  branches: string[];
 }
 
 // Mock Data Storage (In-Memory)
@@ -70,6 +71,7 @@ let events: EventLog[] = [];
 let settings: Settings = {
   rate: 0.05,
   franchise: "Main Store",
+  branches: ["Main Store", "Downtown Branch", "Airport Kiosk"],
 };
 
 // Helper to simulate WhatsApp
@@ -187,6 +189,14 @@ export const api = {
   updateSettings: async (newSettings: Partial<Settings>) => {
     await new Promise((resolve) => setTimeout(resolve, 500));
     settings = { ...settings, ...newSettings };
+    return { ...settings };
+  },
+  
+  addBranch: async (branchName: string) => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    if (!settings.branches.includes(branchName)) {
+        settings.branches.push(branchName);
+    }
     return { ...settings };
   }
 };
