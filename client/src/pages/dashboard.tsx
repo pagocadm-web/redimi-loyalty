@@ -300,10 +300,10 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left Column: Customer List (5 cols) */}
-        <div className="lg:col-span-5 space-y-6">
+        {/* Column 1: Customer List */}
+        <div className="space-y-6">
           <Card className="border-none shadow-sm flex flex-col h-[600px]">
             <CardHeader className="pb-3 border-b border-gray-100 flex flex-row items-center justify-between space-y-0">
               <CardTitle className="text-lg">Customers</CardTitle>
@@ -396,12 +396,11 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Right Column: Actions & History (7 cols) */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Action Card */}
-          <Card className="border-none shadow-md bg-white overflow-hidden">
-            <div className="h-2 bg-gradient-pointy w-full"></div>
-            <CardHeader>
+        {/* Column 2: Manage Points */}
+        <div className="space-y-6">
+          <Card className="border-none shadow-md bg-white overflow-hidden h-[600px] flex flex-col">
+            <div className="h-2 bg-gradient-pointy w-full shrink-0"></div>
+            <CardHeader className="shrink-0">
               <CardTitle>Manage Points</CardTitle>
               <CardDescription>
                 {selectedCustomer 
@@ -409,7 +408,7 @@ export default function Dashboard() {
                   : "Select a customer from the list to start"}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
               <Tabs defaultValue="earn" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 mb-6">
                   <TabsTrigger value="earn">Add Points (Earn)</TabsTrigger>
@@ -459,93 +458,68 @@ export default function Dashboard() {
               </Tabs>
             </CardContent>
           </Card>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Recent Transactions */}
-            <Card className="border-none shadow-sm h-[400px] flex flex-col">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 text-gray-400" />
-                  Recent Transactions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <div className="space-y-4">
-                    {transactions.map((t) => {
-                        const customer = customers.find(c => c.id === t.customerId);
-                        const message = `Hola ${t.customerName}, el ${format(new Date(t.createdAt), "dd/MM/yyyy 'a las' HH:mm")} se ${t.type === 'EARN' ? 'sumaron' : 'canjearon'} ${t.points} puntos. ${t.amount ? `Monto: $${t.amount}` : ''}`;
-                        const whatsappUrl = customer ? `https://wa.me/${customer.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}` : '#';
+        {/* Column 3: Recent Transactions */}
+        <div className="space-y-6">
+          <Card className="border-none shadow-sm h-[600px] flex flex-col">
+            <CardHeader className="shrink-0">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-gray-400" />
+                Recent Transactions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-hidden">
+                <ScrollArea className="h-full">
+                  <div className="space-y-4 pr-4">
+                  {transactions.map((t) => {
+                      const customer = customers.find(c => c.id === t.customerId);
+                      const message = `Hola ${t.customerName}, el ${format(new Date(t.createdAt), "dd/MM/yyyy 'a las' HH:mm")} se ${t.type === 'EARN' ? 'sumaron' : 'canjearon'} ${t.points} puntos. ${t.amount ? `Monto: $${t.amount}` : ''}`;
+                      const whatsappUrl = customer ? `https://wa.me/${customer.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}` : '#';
 
-                        return (
-                        <div key={t.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg group">
-                            <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${t.type === 'EARN' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
-                                {t.type === 'EARN' ? <Plus className="w-4 h-4" /> : <Gift className="w-4 h-4" />}
-                            </div>
-                            <div>
-                                <p className="font-medium text-sm text-gray-900">{t.customerName}</p>
-                                <p className="text-xs text-gray-500">
-                                {format(new Date(t.createdAt), "MMM d, h:mm a")}
-                                </p>
-                            </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                            <div className="text-right">
-                                <p className={`font-bold ${t.type === 'EARN' ? 'text-green-600' : 'text-orange-600'}`}>
-                                {t.type === 'EARN' ? '+' : '-'}{t.points}
-                                </p>
-                                {t.amount && <p className="text-xs text-gray-400">${t.amount}</p>}
-                            </div>
-                            {customer && (
-                                <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                                asChild
-                                >
-                                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" title="Send WhatsApp Receipt">
-                                    <MessageSquare className="w-4 h-4" />
-                                </a>
-                                </Button>
-                            )}
-                            </div>
-                        </div>
-                        );
-                    })}
-                    {transactions.length === 0 && (
-                        <p className="text-center text-gray-500 text-sm py-4">No transactions yet.</p>
-                    )}
-                    </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-
-             {/* WhatsApp Log Simulation */}
-             <Card className="border-none shadow-sm bg-gray-900 text-gray-300 h-[400px] flex flex-col">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2 text-white">
-                  <MessageSquare className="w-4 h-4 text-green-400" />
-                  WhatsApp Simulation Log
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full pr-4">
-                  <div className="space-y-3">
-                    {events.map((e) => (
-                      <div key={e.id} className="text-xs font-mono border-l-2 border-green-500 pl-3 py-1">
-                        <p className="text-gray-500 mb-1">{format(new Date(e.createdAt), "HH:mm:ss")}</p>
-                        <p className="text-green-300 leading-relaxed">{e.message}</p>
+                      return (
+                      <div key={t.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg group">
+                          <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${t.type === 'EARN' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
+                              {t.type === 'EARN' ? <Plus className="w-4 h-4" /> : <Gift className="w-4 h-4" />}
+                          </div>
+                          <div>
+                              <p className="font-medium text-sm text-gray-900">{t.customerName}</p>
+                              <p className="text-xs text-gray-500">
+                              {format(new Date(t.createdAt), "MMM d, h:mm a")}
+                              </p>
+                          </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                          <div className="text-right">
+                              <p className={`font-bold ${t.type === 'EARN' ? 'text-green-600' : 'text-orange-600'}`}>
+                              {t.type === 'EARN' ? '+' : '-'}{t.points}
+                              </p>
+                              {t.amount && <p className="text-xs text-gray-400">${t.amount}</p>}
+                          </div>
+                          {customer && (
+                              <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                              asChild
+                              >
+                              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" title="Send WhatsApp Receipt">
+                                  <MessageSquare className="w-4 h-4" />
+                              </a>
+                              </Button>
+                          )}
+                          </div>
                       </div>
-                    ))}
-                    {events.length === 0 && (
-                      <p className="text-center text-gray-600 text-xs py-4">No messages sent yet.</p>
-                    )}
+                      );
+                  })}
+                  {transactions.length === 0 && (
+                      <p className="text-center text-gray-500 text-sm py-4">No transactions yet.</p>
+                  )}
                   </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
