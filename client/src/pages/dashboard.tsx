@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, Customer, Settings } from "@/lib/mock-server";
+import { api } from "@/lib/api";
+import type { Customer, Settings } from "@/lib/mock-server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -197,9 +198,9 @@ export default function Dashboard() {
       <header className="mb-8 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-pointy flex items-center justify-center shadow-sm">
-            <span className="font-bold text-white text-xl">P</span>
+            <span className="font-bold text-white text-xl">R</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">PUNTIFY.CO</h1>
+          <h1 className="text-2xl font-bold text-gray-900">REDIMI.CO</h1>
         </div>
         <div className="flex items-center gap-4">
            <div className="text-sm text-gray-500 hidden md:block mr-2">

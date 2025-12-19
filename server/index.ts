@@ -1,7 +1,10 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
+import passport from "passport";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import "./auth"; // Initialize passport strategies
 
 const app = express();
 const httpServer = createServer(app);
@@ -12,6 +15,22 @@ declare module "http" {
   }
 }
 
+// CORS configuration (adjust for production)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(
   express.json({
     verify: (req, _res, buf) => {
@@ -21,6 +40,48 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+// Session configuration
+const sessionSecret = process.env.SESSION_SECRET || "change-this-secret-in-production";
+const isProduction = process.env.NODE_ENV === "production";
+
+// Use PostgreSQL session store if DATABASE_URL is available, otherwise use memory store
+let sessionStore;
+if (process.env.DATABASE_URL && isProduction) {
+  const pgSession = await import("connect-pg-simple");
+  const { Pool } = await import("pg");
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+  });
+  const PgStore = pgSession.default(session);
+  sessionStore = new PgStore({
+    pool,
+    tableName: "session",
+  });
+} else {
+  const MemoryStore = (await import("memorystore")).default(session);
+  sessionStore = new MemoryStore({
+    checkPeriod: 86400000, // prune expired entries every 24h
+  });
+}
+
+app.use(
+  session({
+    store: sessionStore,
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: isProduction && process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    },
+  })
+);
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -86,11 +147,8 @@ app.use((req, res, next) => {
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
+    port,
+    "0.0.0.0",
     () => {
       log(`serving on port ${port}`);
     },
